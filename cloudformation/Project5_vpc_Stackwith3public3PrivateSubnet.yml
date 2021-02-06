@@ -1,4 +1,4 @@
-Description: Full VPC Stack with 3 tiers and 2 subnets in each tier.
+Description: Full VPC Stack with 3 tiers and 3 subnets in each tier in Ohio Region.
 
 Parameters:
   EnvironmentName: # put name like, Dev, Production ...etc
@@ -8,37 +8,52 @@ Parameters:
   VpcCIDR:
     Description: Please enter the IP range (CIDR notation) for this VPC
     Type: String
-    Default: 10.0.0.0/16  # VPC CIDR ip range
+    Default: 10.3.0.0/16  # VPC CIDR ip range
 
   PublicSubnet1CIDR: #Public EC2_1 AZ1 subnet(1st tier)
     Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
     Type: String
-    Default: 10.0.0.0/24 
+    Default: 10.3.0.0/24 
 
   PublicSubnet2CIDR: #Public EC2_2 AZ2 subnet(1st tier)
     Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
     Type: String
-    Default: 10.0.5.0/24 
+    Default: 10.3.5.0/24
+
+  PublicSubnet3CIDR: #Public EC2_2 AZ2 subnet(1st tier)
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.3.10.0/24 
 
   PrivateSubnet1CIDR: #private EC2_1 AZ1 subnet(2nd tier)
     Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
     Type: String
-    Default: 10.0.10.0/24 
+    Default: 10.3.15.0/24 
 
   PrivateSubnet2CIDR: #private EC2_2 AZ2 subnet(2nd tier)
     Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
     Type: String
-    Default: 10.0.15.0/24 
+    Default: 10.3.20.0/24 
+  
+  PrivateSubnet3CIDR: #private EC2_2 AZ2 subnet(2nd tier)
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 10.3.25.0/24
 
   PrivateDBSubnet1CIDR: # private DataBase EC2_1 AZ1 subnet(3rd tier)
     Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
     Type: String
-    Default: 10.0.20.0/24 
+    Default: 10.3.30.0/24 
 
   PrivateDBSubnet2CIDR: # private DataBase EC2_2 AZ2 subnet(3rd tier)
     Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
     Type: String
-    Default: 10.0.25.0/24
+    Default: 10.3.35.0/24
+
+  PrivateDBSubnet3CIDR: # private DataBase EC2_2 AZ2 subnet(3rd tier)
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 10.3.40.0/24
 
 Resources:   #Resource names have to match with !Ref....  everywhere in the script when it referred.For EX: !Ref VPC 
 
@@ -50,14 +65,14 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
       EnableDnsHostnames: true #in Public subnets EC2's may have DNS host name,LoadBalancers have Public DNS, not static ip
       Tags:
         - Key: Name
-          Value: sprintqaVPC  # name of VPC, it is just Environment name
+          Value: Project5VPC  # name of VPC, it is just Environment name
 
   InternetGateway: #creates InternetGateway
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: sprintqaIGW  
+          Value: Project5IGW  
 
   InternetGatewayAttachment: #Attaches InternetGateway to VPC
     Type: AWS::EC2::VPCGatewayAttachment
@@ -87,12 +102,23 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-PublicSubnet2  
+  
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ] # us-east-1b, remember lists in python>[0,1,2,3] , AZ List>  [ "us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d" ]
+      CidrBlock: !Ref PublicSubnet3CIDR
+      MapPublicIpOnLaunch: true #means > modify auto-assign IP settings> Enable auto-assign public IP address
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PublicSubnet3
           
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !GetAZs  '' ] # us-east-1a
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ] # AZ-1a
       CidrBlock: !Ref PrivateSubnet1CIDR
       MapPublicIpOnLaunch: false #This time, it is false >  DONT Enable auto-assign public IP address, because it is PRIVATE Subnet
       Tags:
@@ -103,18 +129,29 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 1, !GetAZs  '' ] #us-east-1b
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ] #AZ-1b
       CidrBlock: !Ref PrivateSubnet2CIDR
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-PrivateSubnet2 
+          Value: !Sub ${EnvironmentName}-PrivateSubnet2
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ] #AZ-1c
+      CidrBlock: !Ref PrivateSubnet3CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateSubnet3 
 
   PrivateDBSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 0, !GetAZs  '' ] # us-east-1a
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ] # AZ-1a
       CidrBlock: !Ref PrivateDBSubnet1CIDR
       MapPublicIpOnLaunch: false
       Tags:
@@ -125,12 +162,23 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      AvailabilityZone: !Select [ 1, !GetAZs  '' ] #us-east-1b
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ] #AZ-1b
       CidrBlock: !Ref PrivateDBSubnet2CIDR
       MapPublicIpOnLaunch: false
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-PrivateDBSubnet2 
+
+  PrivateDBSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 2, !GetAZs  '' ] #AZ-1c
+      CidrBlock: !Ref PrivateDBSubnet3CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateDBSubnet3
 
   NatGateway1EIP: #NatGateway1EIP returns AllocationId
     Type: AWS::EC2::EIP  #when EIP created it also creates AllocationId
@@ -142,7 +190,13 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
     Properties:
-      Domain: vpc  
+      Domain: vpc 
+
+  NatGateway3EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc 
 
   NatGateway1:
     Type: AWS::EC2::NatGateway
@@ -155,6 +209,12 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
     Properties:
       AllocationId: !GetAtt NatGateway2EIP.AllocationId # Create NAT Gateway > Elastic IP Allocation ID > Allocate Elastic IP. .AllocationId required.NAT Gateway needs AllocationId so that  it can attach Elastic IP to NAT gateway.
       SubnetId: !Ref PublicSubnet2 #put your natgateway in Public Subnet not in Private Subnet
+  
+  NatGateway3:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway3EIP.AllocationId # Create NAT Gateway > Elastic IP Allocation ID > Allocate Elastic IP. .AllocationId required.NAT Gateway needs AllocationId so that  it can attach Elastic IP to NAT gateway.
+      SubnetId: !Ref PublicSubnet3 #put your natgateway in Public Subnet not in Private Subnet
 
   PublicRouteTable:    #creates route table in VPC , for ex: "myPublicRT"
     Type: AWS::EC2::RouteTable
@@ -182,9 +242,15 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet2 
+      SubnetId: !Ref PublicSubnet2
 
-  PrivateRouteTable1: #creates route table in  Route Tables section in VPC , for ex: "myprivateRT1". connecting private EC2 in AZ1 to private route table(myprivateRT1)
+  PublicSubnet3RouteTableAssociation: #Associate PublicSubnet3 with  public route(for ex: "myPublicRT3") in Route Tables  in AZ3 in public tier. 
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet3 
+
+  PrivateRouteTable1: #creates route table in  Route Tables section in VPC , for ex: "myprivateRT1". connecting private EC2_1 in AZ1 to private route table(myprivateRT1)
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
@@ -192,13 +258,21 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
         - Key: Name
           Value: !Sub ${EnvironmentName}-PrivateRouteTable1
 
-  PrivateRouteTable2: #creates route table in  Route Tables section in VPC , for ex: "myprivateRT2".connecting private EC2 in AZ2 to private route table(myprivateRT2)
+  PrivateRouteTable2: #creates route table in  Route Tables section in VPC , for ex: "myprivateRT2".connecting private EC2_2 in AZ2 to private route table(myprivateRT2)
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName}-PrivateRouteTable2  
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable2 
+
+  PrivateRouteTable3: #creates route table in  Route Tables section in VPC , for ex: "myprivateRT3".connecting private EC2_3 in AZ3 to private route table(myprivateRT3)
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable3  
 
   DefaultPrivateRoute1: #here "DefaultPrivateRoute1" is just a name ,you can change it.
     Type: AWS::EC2::Route
@@ -212,38 +286,61 @@ Resources:   #Resource names have to match with !Ref....  everywhere in the scri
     Properties:
       RouteTableId: !Ref PrivateRouteTable2 # connect privateEC2_2 in AZ2   to   NAT gateway2 in publicAZ2 which will be assigned to privateRT2
       DestinationCidrBlock: 0.0.0.0/0  #direct any ip in 0.0.0.0/0 range  to  NatGateway2
-      NatGatewayId: !Ref NatGateway2  
+      NatGatewayId: !Ref NatGateway2 
+
+  DefaultPrivateRoute3: #here "DefaultPrivateRoute2" is just a name ,you can change it.
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3 # connect privateEC2_3 in AZ2   to   NAT gateway3 in publicAZ2 which will be assigned to privateRT2
+      DestinationCidrBlock: 0.0.0.0/0  #direct any ip in 0.0.0.0/0 range  to  NatGateway3
+      NatGatewayId: !Ref NatGateway3 
 
   PrivateSubnet1RouteTableAssociation1: #associate PrivateSubnet1 to PrivateRouteTable1
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable1
-      SubnetId: !Ref PrivateSubnet1  
+      SubnetId: !Ref PrivateSubnet1
+  
+  PrivateSubnet2RouteTableAssociation1: #associate PrivateSubnet2 to PrivateRouteTable2
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2 
+
+  PrivateSubnet3RouteTableAssociation1: #associate PrivateSubnet3 to PrivateRouteTable3
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      SubnetId: !Ref PrivateSubnet3  
 
   PrivateSubnet1RouteTableAssociation2: #associate PrivateDBSubnet1 to PrivateRouteTable1
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable1
-      SubnetId: !Ref PrivateDBSubnet1  
-
-  PrivateSubnet2RouteTableAssociation1: #associate PrivateSubnet2 to PrivateRouteTable2
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable2
-      SubnetId: !Ref PrivateSubnet2  
+      SubnetId: !Ref PrivateDBSubnet1
 
   PrivateSubnet2RouteTableAssociation2: #associate PrivateDBSubnet2 to PrivateRouteTable2
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTable2
-      SubnetId: !Ref PrivateDBSubnet2
+      SubnetId: !Ref PrivateDBSubnet2 
 
-Outputs:  #we want to create Security group inside the VPC without creating VPC, We want the VPC from other stack thats why we export the vpcID, Public Subnet ID and Private Subnet ID.This is called Nested Stack.
+  PrivateSubnet3RouteTableAssociation2: #associate PrivateDBSubnet3 to PrivateRouteTable3
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable3
+      SubnetId: !Ref PrivateDBSubnet3  
+
+   
+
+  
+
+Outputs: #we want to create Security group inside the VPC without creating VPC, We want the VPC from other stack thats why we export the vpcID, Public Subnet ID and Private Subnet ID.This is called Nested Stack.
   vpcID:
-    Description: sprintqa vpc id
+    Description: Project5 vpc id
     Value: !Ref VPC # returns with vpcID of VPC from Resource
     Export: 
-      Name: sprintqaVPC   
+      Name: Project5VPC   
 
   PublicSubnet1:
     Description: Public Subnet 1 ID
@@ -256,3 +353,45 @@ Outputs:  #we want to create Security group inside the VPC without creating VPC,
     Value: !Ref PrivateSubnet1 #this has to be same as the resource name
     Export:
       Name: PrivateSubnet1 #this is just a name ,you can change it.
+  
+  PublicSubnet2:
+    Description: Public Subnet 2 ID
+    Value: !Ref PublicSubnet2 #this has to be same as the resource name
+    Export:
+      Name: PublicSubnet2 #this is just a name ,you can change it.
+  
+  PrivateSubnet2:
+    Description: Private Subnet 2 ID
+    Value: !Ref PrivateSubnet2 #this has to be same as the resource name
+    Export:
+      Name: PrivateSubnet2 #this is just a name ,you can change it.
+  
+  PublicSubnet3:
+    Description: Public Subnet 3 ID
+    Value: !Ref PublicSubnet3 #this has to be same as the resource name
+    Export:
+      Name: PublicSubnet3 #this is just a name ,you can change it.
+  
+  PrivateSubnet3:
+    Description: Private Subnet 3 ID
+    Value: !Ref PrivateSubnet3 #this has to be same as the resource name
+    Export:
+      Name: PrivateSubnet3 #this is just a name ,you can change it.
+  
+  PrivateDBSubnet1:
+    Description: Private DB Subnet 1 ID
+    Value: !Ref PrivateDBSubnet1 #this has to be same as the resource name
+    Export:
+      Name: PrivateDBSubnet1 #this is just a name ,you can change it.
+  
+  PrivateDBSubnet2:
+    Description: Private DB Subnet 2 ID
+    Value: !Ref PrivateDBSubnet2 #this has to be same as the resource name
+    Export:
+      Name: PrivateDBSubnet2 #this is just a name ,you can change it.
+  
+  PrivateDBSubnet3:
+    Description: Private DB Subnet 3 ID
+    Value: !Ref PrivateDBSubnet3 #this has to be same as the resource name
+    Export:
+      Name: PrivateDBSubnet3 #this is just a name ,you can change it.
