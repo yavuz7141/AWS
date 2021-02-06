@@ -1,4 +1,4 @@
-Description: Full VPC Stack with 3 tiers and 3 subnets in each tier in Ohio Region.
+Description: Full VPC Stack with 3 tiers and 3 subnets in each tier with outputs.
 
 Parameters:
   EnvironmentName: # put name like, Dev, Production ...etc
