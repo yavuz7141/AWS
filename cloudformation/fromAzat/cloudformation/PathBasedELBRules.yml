@@ -1,8 +1,6 @@
 Description: >-
   AWS CloudFormation Sample Template path-based ALB routing: Create 3 instances in
   3 different subnets and make 3 different target groups to route path-based.
-  WATCH this for manual setup from gmail  2.3.2021_AWS Session 5-ELB Path Based Routing.mp4
-  AND watch this for CFN 2.6.2021_AWS Session 6-ASG CFN Automation.mp4
 #--------------------------PARAMETERS---------------------
 Parameters:
   amiId:
@@ -53,7 +51,7 @@ Resources:
             systemctl start httpd
             systemctl enable httpd
             touch /var/www/html/index.html
-            echo "hello world from ${Subnet1}, " >> /var/www/html/index.html 
+            echo "hello world from, " >> /var/www/html/index.html 
             curl checkip.amazonaws.com >> /var/www/html/index.html
       Tags:
         - Key: Name
@@ -77,7 +75,7 @@ Resources:
             systemctl enable httpd
             mkdir /var/www/html/hello
             touch /var/www/html/hello/index.html
-            echo "hello world from ${Subnet2}, " >> /var/www/html/hello/index.html 
+            echo "hello world from, " >> /var/www/html/hello/index.html 
             curl checkip.amazonaws.com >> /var/www/html/hello/index.html
       Tags:
         - Key: Name
@@ -174,6 +172,7 @@ Resources:
       Subnets:
       - Ref: Subnet1
       - Ref: Subnet2
+      - Ref: Subnet3
       SecurityGroups:
       - Ref: ALBSG
 
@@ -202,7 +201,7 @@ Resources:
         - Field: path-pattern
           PathPatternConfig:
               Values: 
-                  - /hello*
+                  - /hello* # wildcard represents everything in this path
       ListenerArn: !Ref ALBListener
       Priority: 1
 
@@ -225,6 +224,12 @@ Outputs:
         Value: !Ref TargetGroup2
         Export:
           Name: Export-TargetGroup2
+
+    TargetGroup3:
+        Description: The created TargetGroup 3
+        Value: !Ref TargetGroup3
+        Export:
+          Name: Export-TargetGroup3
 
     ALBListener:
         Description: Listener

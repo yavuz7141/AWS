@@ -1,0 +1,140 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: S3 Bucket for CrossAccount access
+
+Parameters:
+  BucketName:
+    Type: String   #it is string because it is unique, each bucket is different
+    Description: S3 bucket name
+  # number of days objects will expire in s3
+  ObjectExpiration:
+    Type: Number
+    Description: S3 object lifecycle 
+
+Metadata:
+  # for ui 
+  AWS::CloudFormation::Interface:
+    ParameterLabels:
+      BucketName:
+        default: S3 Bucket Name
+      ObjectExpiration:
+        default: S3 Object Expiration Date
+
+Resources: #everything is optional but Resources, resources must have
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    #DeletionPolicy : Retain  #we need data in s3,in case we delete stack, we dont want to delete s3 storage,thats why it is retain
+    DependsOn: # dependent on another resource, s3 bucekt will not get created until dependent resource is created 
+      - SNSTopicPolicy
+    Properties:
+      # BucketName dependent on AWS::SNS::TopicPolicy
+      BucketName: !Ref BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256  #default encryption used by s3,takes 100 yrs to decrypt
+      AccessControl: Private #because of private bucket for cross account access
+      LifecycleConfiguration:
+        Rules:
+          -
+            AbortIncompleteMultipartUpload: #if object uploading is not completed, abort it so that you wont be charged for incompleted data in s3.because it will be kept in s3 untill upload completed. if your object in s3 is  more than 5GB uploads object in multipart
+              DaysAfterInitiation: 2 #if u increase this, you will be charged more because of using storage(s3) longer
+            ExpirationInDays: !Ref ObjectExpiration #we don wanna keep object in s3 forever
+            Status: Enabled
+      NotificationConfiguration:
+        TopicConfigurations:
+          -
+            Event: s3:ObjectCreated:Put #when someone updates a file in  your s3 bucket you will be notified. "s3:ObjectCreated:Put" is an API call.
+            Topic: !Ref SNSTopic
+          -
+            Event: s3:ObjectCreated:Post #when someone adds a file to your s3 bucket you will be notified.
+            Topic: !Ref SNSTopic
+      PublicAccessBlockConfiguration:  #THIS IS VERY CRUTIAL PART, it should be always true,true,true,true  unless it is a static website.for static website they all should be "false".
+        BlockPublicAcls: true    # this bucket is private, not public
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        -
+          Key: Description
+          Value: S3Bucket for StaticWebsite
+
+  SNSTopic:  # you have to tell the topic permissions, i give you permisson to publish messages "- sns:Publish"
+    Type: AWS::SNS::Topic
+                  # Question:why dont we refer s3bucket policy here, why s3bucket policy is not under "s3Bucket". : ? because we are still doing the first step here(creating s3). maually we do these when we create s3> create s3 bucket 2> create s3 bucket policy 3> Attach s3 bucket policy to s3.
+  SNSTopicPolicy: #creation order : 1>SNSTopic 2>SNSTopicPolicy 3>SNSSubscription 4>s3 will get created
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SNSTopic   #SNSTopicPolicy refers SnsTopic
+      PolicyDocument:
+        Id: SNSTopicPolicy
+        Version: '2012-10-17'
+        Statement:
+          -
+            Sid: S3TriggerAccess
+            Effect: Allow
+            Principal:
+              AWS: 
+                - '*'
+            Action:
+              - sns:Publish
+            Resource:
+              - !Ref SNSTopic
+            Condition:
+              ArnLike: #when do u want to publish messages?
+                aws:SourceArn: !Sub "arn:aws:s3:::${BucketName}" #when u have AWS souce arn of this specific bucketname.for ex when someone uploads a file to finance dep they will be alerted by email.
+
+  SNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: example@gmail.com
+      Protocol: email
+      TopicArn: !Ref SNSTopic
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket #Here we attach S3BucketPolicy to the  S3Bucket, like we do manually.
+      PolicyDocument: # u can not attach multiple bucket policy to a s3 bucket.
+        Statement:
+          -
+            Sid: OwnerAccountPersmissions
+            Action:
+              - s3:* #wildcart , i can do whatever I want
+            Effect: Allow
+            Principal: #if I put only wildcart(*) under here, it will be accessible publicly
+              AWS:
+                - "arn:aws:iam::12345678910:root" # Owner account ID. in my case:this is my 1st(hotmail) AWS account
+            Resource:
+              - !Sub "arn:aws:s3:::${BucketName}"
+              - !Sub "arn:aws:s3:::${BucketName}/*"
+          -
+            Sid: CrossAccountAccess
+            Action:  # Owner gives access to clientA to be able to do these actions
+              - s3:GetBucketLocation
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:ListBucketMultipartUploads
+            Effect: Allow
+            Principal: (only soecific bucket access given and only  the client who has below account ID can access that specific s3 bucket)
+              AWS: ["arn:aws:iam::12345678910:root","arn:aws:iam::87655678910:root"] # clientA and clientB account IDs,in my case:this is my 2nd(gmail) AWS account. if i change this line like this (AWS:"*") all aws accounts in the world can access this bucket.
+            Resource:                                # but if i delete ( AWS:..... LINE ) and change Principal to  ( Principal:'*' ) it is totally open the public, all browsers, smartphones, all devices.
+              - !Sub "arn:aws:s3:::${BucketName}"
+              - !Sub "arn:aws:s3:::${BucketName}/*"
+
+Outputs:
+
+  S3Bucket:
+    Value: !Ref S3Bucket
+    Description: S3 Bucket for object storage
+
+  SNSTopicArn:
+    Value: !Ref SNSTopic
+    Description: SNS Topic for S3 Object Triggers
+
+# aws s3api get-object --bucket s3-cross-account-access-test-124e34343 --key (shared file in s3).png  (local file name).png
+# aws s3api list-buckets --query "Buckets[].Name"
+# aws s3api list-objects-v2 --bucket s3-cross-account-access-test-124e34343
+# aws s3api put-object --bucket s3-cross-account-access-test-124e34343 --key hi.png --body hello.png

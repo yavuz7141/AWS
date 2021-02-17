@@ -1,17 +1,17 @@
 AWSTemplateFormatVersion: 2010-09-09
 
 Description: >-
-  Modified ASG template from AWS provided template.watch this for CFN 2.6.2021_AWS Session 6-ASG CFN Automation.mp4
+  Modified ASG template from AWS provided template.
 Parameters:
   VpcID:
-    Type: 'AWS::EC2::VPC::Id'  # if u put 'AWS::EC2::VPC::Id' to Type > aws will show drop down menu which has all available Vpcid's so that you can choose one. if u put "string" instead, you have to manually type the Vpcid.
+    Type: 'AWS::EC2::VPC::Id' # selecting this type of parameter will display all available vpc in the region 
     Description: VpcId of your existing Virtual Private Cloud (VPC)
   Subnets:
-    Type: 'List<AWS::EC2::Subnet::Id>' #we need multiple AZ for AutoScalingGroup to be HA ,more than one subnet thats why this is  a list of subnets and shows all available subnets.list lets us choose more than one subnet.
+    Type: 'List<AWS::EC2::Subnet::Id>'
     Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
   InstanceType:
     Description: WebServer EC2 instance type
-    Type: String #bydefault t2.micro, but if u want you can choose allowed one.
+    Type: String
     Default: t2.micro
     AllowedValues:
       - t1.micro
@@ -21,13 +21,13 @@ Parameters:
       - t2.medium
   OperatorEMail:
     Description: EMail address to notify if there are any scaling operations
-    Type: String  # this is String  because everyone has different email and everyone can type their own email here. String gives ability to type your parameter info.
+    Type: String
   KeyName:
     Description: The EC2 Key Pair to allow SSH access to the instances
-    Type: 'AWS::EC2::KeyPair::KeyName' #it will show a list of keys and you choose one, for more info about parameters type search google" aws cloudformation parameters types"
+    Type: 'AWS::EC2::KeyPair::KeyName'
   SSHLocation:
     Description: The IP address range that can be used to SSH to the EC2 instances
-    Type: String # it is by default 0.0.0.0/0, but what if you want to enter your own ip, thats why it is string and lets you enter your own ip
+    Type: String
     MinLength: '9'
     MaxLength: '18'
     Default: 0.0.0.0/0
@@ -62,12 +62,12 @@ Mappings:
       HVMG2: ami-0fe84a5b4563d8f27
 
 Resources:
-  NotificationTopic:  #creates SNS topic to let us know via email if we have already set up a cloudwatch alarm.
+  NotificationTopic:
     Type: 'AWS::SNS::Topic'
     Properties:
       Subscription:
         - Endpoint: !Ref OperatorEMail
-          Protocol: email #also you can say here : ses(simple email service) , sqs,sms,http,https . in this case it is email protocol
+          Protocol: email 
   
   WebServerGroup:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
@@ -76,7 +76,7 @@ Resources:
       LaunchConfigurationName: !Ref LaunchConfig
       MinSize: '1'
       MaxSize: '4'
-      TargetGroupARNs: # register target group with ALB
+      TargetGroupARNs:
         - !Ref ALBTargetGroup
       NotificationConfiguration:
         TopicARN: !Ref NotificationTopic
@@ -86,7 +86,7 @@ Resources:
           - 'autoscaling:EC2_INSTANCE_TERMINATE'
           - 'autoscaling:EC2_INSTANCE_TERMINATE_ERROR'
   
-  LaunchConfig: # we did this manually
+  LaunchConfig:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
       KeyName: !Ref KeyName
@@ -100,7 +100,7 @@ Resources:
       SecurityGroups:
         - !Ref InstanceSecurityGroup
       InstanceType: !Ref InstanceType
-      UserData:    # when ASG creates a new EC2, all newly created EC2's will have this userdata.
+      UserData:
         Fn::Base64:
           !Sub |
             #!/bin/bash -xe
@@ -116,8 +116,8 @@ Resources:
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref WebServerGroup
-      Cooldown: '60'  # 60 seconds
-      ScalingAdjustment: '1'  # add 1 EC2 instance  automatically
+      Cooldown: '60'
+      ScalingAdjustment: '1'
   
   WebServerScaleDownPolicy:
     Type: 'AWS::AutoScaling::ScalingPolicy'
@@ -125,7 +125,7 @@ Resources:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref WebServerGroup
       Cooldown: '60'
-      ScalingAdjustment: '-1' # Remove 1 EC2 instance  automatically
+      ScalingAdjustment: '-1'
   
   CPUAlarmHigh:
     Type: 'AWS::CloudWatch::Alarm'

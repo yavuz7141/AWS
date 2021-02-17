@@ -1,8 +1,6 @@
 Description: >-
   AWS CloudFormation Sample Template path-based ALB routing: Create 3 instances in
   3 different subnets and make 3 different target groups to route path-based.
-  WATCH this for manual setup from gmail  2.3.2021_AWS Session 5-ELB Path Based Routing.mp4
-  AND watch this for CFN 2.6.2021_AWS Session 6-ASG CFN Automation.mp4
 #--------------------------PARAMETERS---------------------
 Parameters:
   amiId:
