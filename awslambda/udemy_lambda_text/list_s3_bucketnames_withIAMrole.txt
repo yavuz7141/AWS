@@ -1,9 +1,0 @@
-# after attaching new policy(s3fullaccess) to IAM role, listed bucket names in s3
-
-import boto3
-
-def lambda_handler(event, context):
-   
-     s3_con=boto3.resource("s3","us-east-1")
-     for each_buc in s3_con.buckets.all():
-         print(each_buc.name)
