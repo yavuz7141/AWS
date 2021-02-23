@@ -1,5 +1,5 @@
-Description:  LAMP Stack in a VPC
-Parameters:
+Description:  LAMP Stack in a VPC # THIS will create 3 tier architect.Private subnet(MariaDBWordpressServer and phpApp)
+Parameters:                       # and Public subnet (WordpressServer)
   LatestAmiId:
     Description: AMI ID
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
@@ -210,11 +210,11 @@ Resources:
     DependsOn: InternetGatewayAttachment
     Properties:
       InstanceId: !Ref WordpressEC2
-  WordpressEC2:
+  WordpressEC2:   # WordpressServer ec2
     Type: AWS::EC2::Instance
     CreationPolicy:
-      ResourceSignal:
-        Timeout: PT15M
+      ResourceSignal: #cfn will wait for success signal up until 15min
+        Timeout: PT15M  #it will timout if not created in first 15min,actualy not too long because it will run all commands below
     Properties:
       InstanceType: "t2.micro"
       ImageId: !Ref LatestAmiId
@@ -345,7 +345,7 @@ Resources:
       FromPort: '0'
       ToPort: '65535'
       SourceSecurityGroupId: !Ref InstanceSecurityGroup
-  WordpressRole:
+  WordpressRole: #attaching IAM role
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -358,10 +358,10 @@ Resources:
             Action:
               - 'sts:AssumeRole'
       Path: /
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-        - "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
-  WordpressInstanceProfile:
+      ManagedPolicyArns:  #attaching 2 permission was managed policies
+        - "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy" # to monitor memory
+        - "arn:aws:iam::aws:policy/AmazonSSMFullAccess" #EC2 will get configs as SSM parameters,Cloudwatchagent will need that
+  WordpressInstanceProfile: #attaching IAM role
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
       Path: /
