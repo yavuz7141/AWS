@@ -1,0 +1,152 @@
+Description:  Automation of 3 tiers , 3 EC2's in each tier with imported Value from Vpc Stack.
+Parameters:
+  amiId:
+    Description: AMI for the 1st instance(default is latest AmaLinux2)
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  KeyName:
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Description: "SSH keypair name"
+Resources:
+  PublicInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PublicSubnet1
+      SecurityGroupIds: 
+        - !Ref PublicInstanceSG
+      Tags:
+        - Key: Name
+          Value: BastionHost1
+  
+  PublicInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PublicSubnet2
+      SecurityGroupIds: 
+        - !Ref PublicInstanceSG
+      Tags:
+        - Key: Name
+          Value: BastionHost2
+  
+  PublicInstance3:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PublicSubnet3
+      SecurityGroupIds: 
+        - !Ref PublicInstanceSG
+      Tags:
+        - Key: Name
+          Value: BastionHost3
+
+  PrivateInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PrivateSubnet1
+      SecurityGroupIds: 
+        - !Ref PrivateInstanceSG
+      Tags:
+        - Key: Name
+          Value: PrivateEC2Server1
+  
+  PrivateInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PrivateSubnet2
+      SecurityGroupIds: 
+        - !Ref PrivateInstanceSG
+      Tags:
+        - Key: Name
+          Value: PrivateEC2Server2
+  
+  PrivateInstance3:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PrivateSubnet3
+      SecurityGroupIds: 
+        - !Ref PrivateInstanceSG
+      Tags:
+        - Key: Name
+          Value: PrivateEC2Server3
+
+  PrivateDBInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PrivateDBSubnet1
+      SecurityGroupIds: 
+        - !Ref PrivateInstanceSG
+      Tags:
+        - Key: Name
+          Value: PrivateDBEC2Server1
+  
+  PrivateDBInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PrivateDBSubnet2
+      SecurityGroupIds: 
+        - !Ref PrivateInstanceSG
+      Tags:
+        - Key: Name
+          Value: PrivateDBEC2Server2
+  
+  PrivateDBInstance3:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyName
+      InstanceType: "t2.micro"
+      ImageId: !Ref amiId
+      SubnetId: !ImportValue PrivateDBSubnet3
+      SecurityGroupIds: 
+        - !Ref PrivateInstanceSG
+      Tags:
+        - Key: Name
+          Value: PrivateDBEC2Server3
+
+  PublicInstanceSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !ImportValue Project5VPC
+      GroupDescription: SSH access for IPv4 and IPv6 
+      SecurityGroupIngress:
+        - Description: 'Inbound IPv4 SSH traffic'
+          IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '0.0.0.0/0'
+          
+        
+          
+  PrivateInstanceSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      VpcId: !ImportValue Project5VPC
+      GroupDescription: SSH access for IPv4 and IPv6 
+      SecurityGroupIngress:
+        - Description: 'Inbound IPv4 SSH traffic'
+          IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: '10.3.0.0/16'
